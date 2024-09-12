@@ -1,0 +1,67 @@
+from flask import render_template, redirect, url_for
+
+from . import app, db
+from .forms import NewsForm
+from .models import Category, News
+
+@app.route('/')
+def index():
+    news_list = News.query.all()
+    categories = Category.query.all()
+    return render_template(
+        'index.html',
+        news=news_list,
+        categories=categories
+    )
+#def index():
+#    return render_template(
+#        'index.html',
+#        title='Новостной сайт',
+#        text='Скоро тут будут новости'
+#    )
+#@app.route('/news_detail/<int:id>')
+#def news_detail(id):
+#    title = news[id]['title']
+#    text = news[id]['text']
+#    return render_template('news_detail.html', title=title, text=text)
+
+
+@app.route('/news_detail/<int:id>')
+def news_detail(id):
+    news_detail = News.query.get(id)
+    categories = Category.query.all()
+    return render_template('news_detail.html',
+                           news=news_detail,
+                           categories=categories)
+
+
+@app.route('/category/<string:name>')
+def category(name):
+    return f'Категория {name}'
+
+
+@app.route('/category/<int:id>')
+def news_in_category(id):
+    category = Category.query.get(id)
+    news = category.news
+    category_name = category.title
+    categories = Category.query.all()
+    return render_template('category.html',
+                           news=news,
+                           category_name=category_name,
+                           categories=categories)
+
+
+@app.route('/add_news', methods=['GET', 'POST'])
+def add_news():
+    categories = Category.query.all()
+    form = NewsForm()
+    if form.validate_on_submit():
+        news = News()
+        news.title = form.title.data
+        news.text = form.text.data
+        news.category_id = form.category.data
+        db.session.add(news)
+        db.session.commit()
+        return redirect(url_for('news_detail', id=news.id))
+    return render_template('add_news.html', form=form, categories=categories)
